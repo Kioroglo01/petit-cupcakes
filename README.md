@@ -6,7 +6,7 @@ Aplicação MVC em Python 3.10+ com SQLite e interface em HTML, CSS e JavaScript
 
 A aplicação está hospedada no Render e pode ser acessada pelo navegador, sem instalação de Python ou uso de terminal.
 
-Link: [https://petit-cupcakes.onrender.com]
+Link: [Acessar a loja Petit Cupcakes](https://petit-cupcakes.onrender.com/)
 
 A hospedagem utiliza o plano gratuito. O primeiro acesso após um período de inatividade pode demorar. Os pedidos e as alterações de estoque armazenados no SQLite podem ser perdidos quando o serviço reinicia ou entra em suspensão.
 
@@ -21,9 +21,19 @@ Não abra `index.html` diretamente: o servidor fornece a interface e as APIs.
 
 ## Testar
 
+Back-end e integração HTTP: 15 testes automatizados com a biblioteca padrão do Python.
+
 ```sh
 python -m unittest discover -s tests -v
 ```
+
+Testes de regressão do front-end (Node.js 18+ opcional, sem instalar pacotes):
+
+```sh
+node --test tests/test_frontend.cjs
+```
+
+São 5 testes de comportamento do JavaScript com DOM e rede simulados. A conferência no navegador é descrita em `VERIFICACAO.md`.
 
 A suíte cobre persistência, cálculo de preços no servidor, repetição de checkout sem duplicação, isolamento de pedidos por cookie, validação de entradas, rollback, concorrência de estoque, arquivos da interface, fluxo HTTP de compra e erros HTTP. JavaScript pode ser verificado com `node --check static/app.js` (Node é opcional).
 
@@ -37,6 +47,9 @@ A suíte cobre persistência, cálculo de preços no servidor, repetição de ch
 - Estoque atualizado em transação atômica, sem venda acima do estoque em requisições simultâneas.
 - Chave de idempotência para repetição de requisições sem duplicar o mesmo pedido.
 - Consulta do pedido pela sessão original, sem expor pedidos de outro navegador.
+- Botão “Último pedido” para recuperar o pedido mais recente após atualizar a página, enquanto o cookie e o banco forem mantidos.
+- Validação de telefone brasileiro com DDD no cliente e no servidor, rejeitando letras e formatos inválidos. Não verifica se o número existe.
+- Carrinho e confirmação independentes: reabrir a sacola sempre mostra os produtos da nova compra.
 - Tratamento de erros 400, 403, 404, 413, 415 e 500.
 - SQL parametrizado, cookie HttpOnly/SameSite, política de conteúdo e rotas de arquivos permitidas explicitamente.
 
@@ -57,6 +70,7 @@ O estado do catálogo e dos pedidos é do servidor. O navegador envia IDs e quan
 | --- | --- | --- |
 | GET | `/api/products` | Catálogo e estoque |
 | POST | `/api/orders` | Registra pedido e atualiza estoque |
+| GET | `/api/orders/latest` | Último pedido da sessão atual, ou `null` |
 | GET | `/api/orders/{token}` | Consulta pedido da mesma sessão |
 
 O POST requer `Content-Type: application/json`, `X-Shop-Request: checkout` e um corpo como:
@@ -71,7 +85,7 @@ Use uma chave diferente por compra; preserve-a ao repetir uma tentativa após fa
 
 `shop.sqlite3` é criado ao lado de `app.py`. Não há banco com dados pessoais no pacote. Para um banco em outro caminho, configure `DATABASE_PATH`. Faça backup antes de qualquer manutenção. Os sabores e quantidades iniciais estão em `models/store.py`; alterações nessa lista só se aplicam a um banco novo. A gestão administrativa não faz parte desta versão; ajustes de catálogo e estoque exigem manutenção do banco.
 
-Variáveis opcionais: `HOST` (padrão `127.0.0.1`), `PORT` (8000), `DATABASE_PATH`, `COOKIE_SECURE=1` para cookies em HTTPS. Reiniciar o servidor preserva os pedidos no arquivo SQLite. Apagar cookies impede consultar pedidos da sessão antiga. O protocolo não é uma conta de usuário.
+Variáveis opcionais: `HOST` (padrão `127.0.0.1`), `PORT` (8000), `DATABASE_PATH`, `COOKIE_SECURE=1` para cookies em HTTPS. Na execução local, reiniciar o servidor preserva os pedidos se o mesmo arquivo SQLite for mantido. No Render gratuito, o sistema de arquivos é temporário e o banco pode ser perdido ao reiniciar, suspender ou publicar uma versão. Apagar cookies impede consultar pedidos da sessão antiga. O protocolo não é uma conta de usuário.
 
 ## Limites e implantação
 
@@ -79,4 +93,4 @@ Esta é uma loja demonstrativa funcional para pedidos com pagamento na retirada.
 
 O servidor HTTP da biblioteca padrão é adequado para execução e avaliação local. Para operação comercial na internet, é necessário adaptar a camada HTTP a um servidor de produção, configurar HTTPS, limites de requisição, monitoramento, backups, política de privacidade/LGPD e dados reais da loja. O projeto está publicado no Render para demonstração acadêmica, com back-end Python e banco SQLite.
 
-As ilustrações são SVG originais incorporados à interface e funcionam sem serviços externos. Não representam fotografias dos produtos reais.
+O catálogo usa seis fotografias, incluídas em `static/images`. 

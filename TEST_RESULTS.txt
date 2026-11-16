@@ -1,15 +1,34 @@
+test_checkout_rejects_phone_with_letters (test_shop.HTTPTests.test_checkout_rejects_phone_with_letters) ... ok
 test_errors (test_shop.HTTPTests.test_errors) ... ok
 test_frontend_assets (test_shop.HTTPTests.test_frontend_assets) ... ok
 test_full_checkout_and_lookup (test_shop.HTTPTests.test_full_checkout_and_lookup) ... ok
+test_latest_order_api_and_session_isolation (test_shop.HTTPTests.test_latest_order_api_and_session_isolation) ... ok
+test_local_cupcake_images (test_shop.HTTPTests.test_local_cupcake_images) ... ok
 test_no_file_traversal (test_shop.HTTPTests.test_no_file_traversal) ... ok
 test_atomic_rollback (test_shop.ModelTests.test_atomic_rollback) ... ok
 test_concurrent_stock (test_shop.ModelTests.test_concurrent_stock) ... ok
 test_invalid_inputs (test_shop.ModelTests.test_invalid_inputs) ... ok
+test_latest_order_survives_restart_and_is_private (test_shop.ModelTests.test_latest_order_survives_restart_and_is_private) ... ok
 test_order_is_private (test_shop.ModelTests.test_order_is_private) ... ok
+test_phone_accepts_and_normalizes_valid_formats (test_shop.ModelTests.test_phone_accepts_and_normalizes_valid_formats) ... ok
+test_phone_rejects_letters_and_invalid_formats (test_shop.ModelTests.test_phone_rejects_letters_and_invalid_formats) ... ok
 test_price_stock_and_persistence (test_shop.ModelTests.test_price_stock_and_persistence) ... ok
 test_retry_does_not_duplicate (test_shop.ModelTests.test_retry_does_not_duplicate) ... ok
 
 ----------------------------------------------------------------------
-Ran 10 tests in 2.038s
+Ran 16 tests in 3.556s
 
 OK
+✔ telefone com letras impede POST de checkout (17.722943ms)
+✔ nova compra mostra carrinho depois de confirmação anterior (2.687083ms)
+✔ após recarga recupera último pedido do servidor e mantém sacola (1.673164ms)
+✔ sessão sem pedidos oculta botão de último pedido (1.417949ms)
+✔ estoque reduzido não impede diminuir quantidade antiga na sacola (1.718752ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 107.053327

@@ -23,13 +23,26 @@ class ShopController(BaseHTTPRequestHandler):
  def do_GET(self):
   self.session(); path=urlsplit(self.path).path
   if path=='/api/products': return self.respond(200,self.server.store.products())
+  if path=='/api/orders/latest':
+   order=self.server.store.latest_order(self.sid)
+   return self.respond(200,{'order':order})
   if path.startswith('/api/orders/'):
    order=self.server.store.order(path.rsplit('/',1)[1],self.sid)
    return self.respond(200,order) if order else self.respond(404,{'error':'Pedido não encontrado nesta sessão.'})
   if path=='/': file=self.server.root/'views/index.html'
-  elif path in ('/static/app.js','/static/style.css'): file=self.server.root/path[1:]
+  elif path in ('/static/app.js','/static/style.css',
+   '/static/images/red-velvet.png',
+   '/static/images/chocolate-intenso.png',
+   '/static/images/morango-dos-sonhos.png',
+   '/static/images/limao-siciliano.png',
+   '/static/images/doce-de-leite.png',
+   '/static/images/baunilha-confete.png',
+  ): file=self.server.root/path[1:]
   else: return self.respond(404,{'error':'Página não encontrada.'})
-  self.respond(200,file.read_bytes(),mimetypes.guess_type(str(file))[0]+'; charset=utf-8')
+  if not file.is_file(): return self.respond(404,{'error':'Arquivo não encontrado.'})
+  kind=mimetypes.guess_type(str(file))[0] or 'application/octet-stream'
+  if kind.startswith('text/') or kind in ('application/javascript','application/json'): kind+='; charset=utf-8'
+  self.respond(200,file.read_bytes(),kind)
  def do_POST(self):
   self.session()
   if urlsplit(self.path).path!='/api/orders': return self.respond(404,{'error':'Rota não encontrada.'})

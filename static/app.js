@@ -3,16 +3,152 @@ const $=s=>document.querySelector(s), money=n=>new Intl.NumberFormat('pt-BR',{st
 let products=[],category='Todos',cart={},pendingKey=null,busy=false;
 try{const saved=JSON.parse(localStorage.getItem('petit-cart')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))cart=Object.fromEntries(Object.entries(saved).filter(([id,q])=>/^\d+$/.test(id)&&Number.isInteger(q)&&q>0&&q<=30));pendingKey=localStorage.getItem('petit-key')}catch{}
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function cake(color,cream,id){return `<svg viewBox="0 0 300 300" role="img" aria-label="Cupcake artesanal ilustrado"><defs><linearGradient id="w${id}" x2="1" y2=".3"><stop stop-color="${color}"/><stop offset="1" stop-color="#763d39"/></linearGradient><linearGradient id="c${id}" x2=".8" y2="1"><stop stop-color="#fff9ee"/><stop offset=".5" stop-color="${cream}"/><stop offset="1" stop-color="${color}"/></linearGradient></defs><ellipse cx="150" cy="264" rx="87" ry="13" fill="#694530" opacity=".12"/><path d="M72 173H228L209 250Q150 275 91 250Z" fill="url(#w${id})"/><path d="M88 180L103 249M108 182L118 254M130 183L133 257M151 183V259M172 182L167 257M193 181L184 254M215 179L200 249" stroke="#fff" stroke-opacity=".25" stroke-width="3"/><path d="M68 174Q64 153 93 141Q75 123 110 110Q98 91 133 77Q149 64 148 39Q186 55 182 84Q214 91 201 111Q232 122 215 141Q242 152 231 173Q154 202 68 174Z" fill="url(#c${id})"/><path d="M94 141Q158 158 213 141M111 111Q155 125 199 112M134 79Q162 94 182 85" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/><g fill="${color}"><circle cx="115" cy="148" r="3"/><circle cx="181" cy="132" r="3"/><circle cx="147" cy="109" r="3"/><circle cx="174" cy="161" r="3"/></g></svg>`}
-$('#hero-cake').innerHTML=cake('#c17d77','#f6d9cc','hero');
+const productPhotos = {"1": "/static/images/red-velvet.png", "2": "/static/images/chocolate-intenso.png", "3": "/static/images/morango-dos-sonhos.png", "4": "/static/images/limao-siciliano.png", "5": "/static/images/doce-de-leite.png", "6": "/static/images/baunilha-confete.png"};
+function photo(id,name,hero=false){return `<img src="${productPhotos[id]}" alt="${escape(name)}" loading="${hero?'eager':'lazy'}" decoding="async" referrerpolicy="no-referrer">`}
+$('#hero-cake').innerHTML=photo(3,'Cupcake de morango',true);
 function persist(){try{localStorage.setItem('petit-cart',JSON.stringify(cart));if(pendingKey)localStorage.setItem('petit-key',pendingKey);else localStorage.removeItem('petit-key')}catch{}}
 function toast(msg){$('#toast').textContent=msg;$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),2300)}
-function renderProducts(){const list=products.filter(p=>category==='Todos'||p.category===category);$('#products').innerHTML=list.map(p=>`<article class="product"><div class="product-image" style="--tile:${p.cream}55"><span class="tag">${escape(p.category.toUpperCase())}</span>${cake(p.color,p.cream,p.id)}</div><h3>${escape(p.name)}</h3><p>${escape(p.description)}</p><div class="buy-row"><b>${money(p.price)}</b><button data-add="${p.id}" ${p.stock===0?'disabled':''}>${p.stock===0?'Esgotado':'Adicionar +'}</button></div><small class="stock">${p.stock} disponíveis</small></article>`).join('')}
+function renderProducts(){const list=products.filter(p=>category==='Todos'||p.category===category);$('#products').innerHTML=list.map(p=>`<article class="product"><div class="product-image" style="--tile:${p.cream}55">${photo(p.id,p.name)}</div><h3>${escape(p.name)}</h3><p>${escape(p.description)}</p><div class="buy-row"><b>${money(p.price)}</b><button data-add="${p.id}" ${p.stock===0?'disabled':''}>${p.stock===0?'Esgotado':'Adicionar +'}</button></div><small class="stock">${p.stock} disponíveis</small></article>`).join('')}
 function renderCart(){let total=0,count=0;$('#cart-items').innerHTML=Object.entries(cart).map(([id,q])=>{const p=products.find(p=>p.id===Number(id));if(!p)return '';total+=p.price*q;count+=q;return `<div class="cart-row"><div><b>${escape(p.name)}</b><small>${money(p.price)} cada</small></div><div class="quantity"><button data-change="${id}" data-delta="-1" aria-label="Diminuir ${escape(p.name)}">−</button><span>${q}</span><button data-change="${id}" data-delta="1" aria-label="Aumentar ${escape(p.name)}">+</button></div></div>`}).join('')||'<p>Sua sacola está esperando um pouco de doçura.</p>';$('#total').textContent=money(total);$('#count').textContent=count;$('#submit-order').disabled=!count||busy}
 async function load(){const r=await fetch('/api/products');if(!r.ok)throw Error('Não foi possível carregar os sabores. Atualize a página.');products=await r.json();for(const id of Object.keys(cart))if(!products.some(p=>p.id===Number(id)))delete cart[id];renderProducts();renderCart();persist()}
-$('.filters').addEventListener('click',e=>{const b=e.target.closest('[data-category]');if(!b)return;category=b.dataset.category;document.querySelectorAll('[data-category]').forEach(x=>x.classList.toggle('active',x===b));renderProducts()});
-$('#products').addEventListener('click',e=>{const b=e.target.closest('[data-add]');if(!b)return;if(busy)return;const id=b.dataset.add,p=products.find(p=>p.id===+id);if((cart[id]||0)>=Math.min(30,p.stock))return toast('Limite de quantidade ou estoque atingido.');cart[id]=(cart[id]||0)+1;pendingKey=null;persist();renderCart();toast('Uma delícia adicionada à sacola ♡')});
-$('#cart-items').addEventListener('click',e=>{const b=e.target.closest('[data-change]');if(!b||busy)return;const id=b.dataset.change,p=products.find(p=>p.id===+id),q=cart[id]+Number(b.dataset.delta);if(q>Math.min(30,p.stock))return toast('Limite de quantidade ou estoque atingido.');if(q<=0)delete cart[id];else cart[id]=q;pendingKey=null;persist();renderCart()});
-$('#open-cart').onclick=()=>{$('#cart-dialog').showModal();renderCart()};$('#close-cart').onclick=()=>$('#cart-dialog').close();
-$('#checkout').onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;renderCart();$('#checkout-error').textContent='';pendingKey=pendingKey||crypto.randomUUID();persist();try{const fields=new FormData(e.target);const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json','X-Shop-Request':'checkout'},body:JSON.stringify({name:fields.get('name'),phone:fields.get('phone'),cart,key:pendingKey})});const order=await r.json();if(!r.ok)throw Error(order.error||'Não foi possível registrar seu pedido.');cart={};pendingKey=null;persist();$('#receipt').hidden=false;$('#checkout').hidden=true;$('#cart-items').hidden=true;$('.total').hidden=true;$('#receipt').innerHTML=`<p class="eyebrow">PEDIDO REGISTRADO ♡</p><h2>Obrigada, ${escape(order.customer)}!</h2><p>${escape(order.status)}</p><p>A loja deverá confirmar local e horário de retirada. Nenhum pagamento foi realizado.</p><p><b>Total: ${money(order.total)}</b></p><p class="muted">Protocolo: ${escape(order.token)}</p><button id="check-order" class="primary">Consultar pedido</button><p id="order-status" role="status"></p><button id="new-order" class="bag">Fazer novo pedido</button>`;$('#check-order').onclick=async()=>{try{const res=await fetch('/api/orders/'+encodeURIComponent(order.token));const data=await res.json();if(!res.ok)throw Error(data.error);$('#order-status').textContent=data.status}catch(err){$('#order-status').textContent=err.message}};$('#new-order').onclick=()=>{$('#receipt').hidden=true;$('#checkout').hidden=false;$('#cart-items').hidden=false;$('.total').hidden=false;$('#checkout').reset();$('#cart-dialog').close()};try{await load()}catch{toast('Pedido registrado. Atualize a vitrine para ver o estoque.')}}catch(err){$('#checkout-error').textContent=err.message||'Falha de conexão. Tente novamente.'}finally{busy=false;renderCart()}};
-load().catch(err=>{$('#products').textContent='';$('#catalog-error').textContent=err.message});
+
+// A confirmação do pedido e o carrinho têm visualizações independentes.
+let latestOrder = null;
+const phonePattern = /^(?:\([1-9][0-9]\)|[1-9][0-9]) ?(?:9[0-9]{4}|[2-5][0-9]{3})-?[0-9]{4}$/;
+const phoneField = $('#checkout input[name="phone"]');
+function validatePhone() {
+  const valid = phonePattern.test(phoneField.value.trim());
+  phoneField.setCustomValidity(valid ? '' : 'Informe um telefone válido com DDD, sem letras. Ex.: (11) 99999-9999.');
+  return valid;
+}
+phoneField.addEventListener('input', validatePhone);
+
+function openDialog() {
+  if (!$('#cart-dialog').open) $('#cart-dialog').showModal();
+}
+function showCart() {
+  $('#dialog-title').textContent = 'Sua sacola';
+  $('#receipt').hidden = true;
+  $('#checkout').hidden = false;
+  $('#cart-items').hidden = false;
+  $('.total').hidden = false;
+  $('#checkout-error').textContent = '';
+  renderCart();
+}
+function rememberOrder(order) {
+  latestOrder = order;
+  $('#last-order').hidden = !order;
+}
+async function loadLatestOrder() {
+  const response = await fetch('/api/orders/latest');
+  if (!response.ok) throw Error('Não foi possível consultar o último pedido.');
+  const data = await response.json();
+  rememberOrder(data.order);
+  return data.order;
+}
+function showReceipt(order) {
+  rememberOrder(order);
+  $('#dialog-title').textContent = 'Seu pedido';
+  $('#receipt').hidden = false;
+  $('#checkout').hidden = true;
+  $('#cart-items').hidden = true;
+  $('.total').hidden = true;
+  $('#receipt').innerHTML = `
+    <p class="eyebrow">PEDIDO REGISTRADO ♡</p>
+    <h2>Obrigado por escolher a Petit, ${escape(order.customer)}!</h2>
+    <p>${escape(order.status)}</p>
+    <ul class="receipt-items">${order.items.map(item => `<li>${item.quantity} × ${escape(item.name)} — ${money(item.price * item.quantity)}</li>`).join('')}</ul>
+    <p><b>Total: ${money(order.total)}</b></p>
+    <p>A loja deverá confirmar local e horário de retirada. Nenhum pagamento foi realizado.</p>
+    <p class="muted">Protocolo: ${escape(order.token)}</p>
+    <div class="order-actions"><button id="check-order" class="primary">Consultar pedido</button><button id="new-order" class="bag">Voltar à sacola</button></div>
+    <p id="order-status" role="status"></p>
+    <p class="muted">Você pode recuperar este pedido pelo botão “Último pedido” neste navegador, enquanto a sessão e o banco forem mantidos.</p>`;
+  $('#check-order').onclick = async () => {
+    const button = $('#check-order');
+    button.disabled = true;
+    try {
+      const response = await fetch('/api/orders/' + encodeURIComponent(order.token));
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error || 'Não foi possível consultar o pedido.');
+      $('#order-status').textContent = data.status;
+    } catch (error) {
+      $('#order-status').textContent = error.message || 'Falha de conexão. Tente novamente.';
+    } finally { button.disabled = false; }
+  };
+  $('#new-order').onclick = showCart;
+}
+
+$('.filters').addEventListener('click', event => {
+  const button = event.target.closest('[data-category]');
+  if (!button) return;
+  category = button.dataset.category;
+  document.querySelectorAll('[data-category]').forEach(item => item.classList.toggle('active', item === button));
+  renderProducts();
+});
+$('#products').addEventListener('click', event => {
+  const button = event.target.closest('[data-add]');
+  if (!button || busy) return;
+  const id = button.dataset.add, product = products.find(item => item.id === Number(id));
+  if ((cart[id] || 0) >= Math.min(30, product.stock)) return toast('Limite de quantidade ou estoque atingido.');
+  cart[id] = (cart[id] || 0) + 1;
+  pendingKey = null;
+  persist(); renderCart();
+  toast('Uma delícia adicionada à sacola ♡');
+});
+$('#cart-items').addEventListener('click', event => {
+  const button = event.target.closest('[data-change]');
+  if (!button || busy) return;
+  const id = button.dataset.change, product = products.find(item => item.id === Number(id));
+  const delta = Number(button.dataset.delta), quantity = cart[id] + delta;
+  // Mesmo se o estoque cair, o cliente ainda deve conseguir reduzir/remover itens.
+  if (delta > 0 && quantity > Math.min(30, product.stock)) return toast('Limite de quantidade ou estoque atingido.');
+  if (quantity <= 0) delete cart[id]; else cart[id] = quantity;
+  pendingKey = null;
+  persist(); renderCart();
+});
+$('#open-cart').onclick = () => { showCart(); openDialog(); };
+$('#close-cart').onclick = () => $('#cart-dialog').close();
+$('#last-order').onclick = async () => {
+  if (busy) return;
+  const button = $('#last-order');
+  button.disabled = true;
+  try {
+    const order = await loadLatestOrder();
+    if (!order) return toast('Não há pedido disponível nesta sessão.');
+    showReceipt(order); openDialog();
+  } catch (error) { toast(error.message || 'Falha de conexão. Tente novamente.'); }
+  finally { button.disabled = false; }
+};
+$('#checkout').onsubmit = async event => {
+  event.preventDefault();
+  if (busy) return;
+  if (!validatePhone()) { phoneField.reportValidity(); return; }
+  busy = true; renderCart();
+  $('#checkout-error').textContent = '';
+  try {
+    pendingKey = pendingKey || crypto.randomUUID();
+    persist();
+    const fields = new FormData(event.target);
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Shop-Request': 'checkout' },
+      body: JSON.stringify({ name: fields.get('name'), phone: fields.get('phone'), cart, key: pendingKey })
+    });
+    const order = await response.json();
+    if (!response.ok) throw Error(order.error || 'Não foi possível registrar seu pedido.');
+    cart = {}; pendingKey = null;
+    persist();
+    $('#checkout').reset(); phoneField.setCustomValidity('');
+    showReceipt(order);
+    try { await load(); }
+    catch { toast('Pedido registrado. Atualize a vitrine para ver o estoque.'); }
+  } catch (error) {
+    $('#checkout-error').textContent = error.message || 'Falha de conexão. Tente novamente.';
+  } finally { busy = false; renderCart(); }
+};
+load().catch(error => { $('#products').textContent = ''; $('#catalog-error').textContent = error.message; });
+loadLatestOrder().catch(() => {
+  // Mantém a opção disponível para repetir uma consulta que falhou por rede.
+  $('#last-order').hidden = false;
+});

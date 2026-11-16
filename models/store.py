@@ -1,4 +1,4 @@
-import sqlite3, secrets, json
+import sqlite3, secrets, json, re
 from contextlib import contextmanager
 
 PRODUCTS = [
@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS orders(token TEXT PRIMARY KEY,owner TEXT NOT NULL,req
   if not isinstance(data,dict): raise ValueError('Dados inválidos.')
   name=data.get('name',''); phone=data.get('phone',''); key=data.get('key',''); cart=data.get('cart',{})
   if not isinstance(name,str) or not 2<=len(name.strip())<=100: raise ValueError('Informe seu nome (2 a 100 caracteres).')
-  if not isinstance(phone,str) or not 10<=len(''.join(filter(str.isdigit,phone)))<=11: raise ValueError('Informe um telefone com DDD.')
+  if not isinstance(phone,str) or not re.fullmatch(r'(?:\([1-9][0-9]\)|[1-9][0-9]) ?(?:9[0-9]{4}|[2-5][0-9]{3})-?[0-9]{4}',phone.strip()):
+   raise ValueError('Informe um telefone válido com DDD, sem letras. Ex.: (11) 99999-9999.')
+  phone=re.sub(r'[^0-9]','',phone)
   if not isinstance(key,str) or not 16<=len(key)<=100: raise ValueError('Identificador de compra inválido.')
   if not isinstance(cart,dict) or not 1<=len(cart)<=30: raise ValueError('Seu carrinho está vazio ou inválido.')
   with self.db() as db:
@@ -55,3 +57,8 @@ CREATE TABLE IF NOT EXISTS orders(token TEXT PRIMARY KEY,owner TEXT NOT NULL,req
    row=db.execute('SELECT token,customer,total,items,created FROM orders WHERE token=? AND owner=?',(token,owner)).fetchone()
    if not row: return None
    result=dict(row); result['items']=json.loads(result['items']); result['status']='Recebido · pagamento na retirada'; return result
+
+ def latest_order(self,owner):
+  with self.db() as db:
+   row=db.execute('SELECT token FROM orders WHERE owner=? ORDER BY rowid DESC LIMIT 1',(owner,)).fetchone()
+  return self.order(row['token'],owner) if row else None
