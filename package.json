@@ -1,0 +1,1 @@
+{"name":"petit-cupcakes","private":true,"scripts":{"dev":"HOST=0.0.0.0 python app.py"}}
